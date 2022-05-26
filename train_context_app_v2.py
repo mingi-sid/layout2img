@@ -48,7 +48,7 @@ def main(args):
     args.out_path = os.path.join(args.out_path, args.dataset, str(img_size))
 
     num_gpus = torch.cuda.device_count()
-    num_workers = 2
+    num_workers = 4 * num_gpus
     if num_gpus > 1:
         parallel = True
         args.batch_size = args.batch_size * num_gpus
@@ -68,7 +68,7 @@ def main(args):
     netG = ResnetGenerator128_context(num_classes=num_classes, output_dim=3).to(device)
     netD = CombineDiscriminator128_app(num_classes=num_classes).to(device)
 
-    if args.checkpoint_epoch is not None:
+    if (args.checkpoint_epoch is not None) and (args.checkpoint_epoch != 0):
         load_G = args.out_path + '/model/G_{}.pth'.format(args.checkpoint_epoch)
         load_D = args.out_path + '/model/D_{}.pth'.format(args.checkpoint_epoch)
         if not os.path.isfile(load_G) or not os.path.isfile(load_D):
