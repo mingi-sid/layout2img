@@ -7,3 +7,6 @@ scipy
 Cython
 pycocotools
 torch
+torchvision
+h5py
+tqdm
