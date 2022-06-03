@@ -37,7 +37,7 @@ def get_dataset(dataset, img_size):
 
 def main(args):
     # parameters
-    img_size = 128
+    img_size = args.image_size
     z_dim = 128
     lamb_obj = 1.0
     lamb_app = 1.0
@@ -65,7 +65,10 @@ def main(args):
 
     # Load model
     device = torch.device('cuda')
-    netG = ResnetGenerator128_context(num_classes=num_classes, output_dim=3).to(device)
+    if img_size == 128:
+        netG = ResnetGenerator128_context(num_classes=num_classes, output_dim=3).to(device)
+    elif img_size == 64:
+        netG = ResnetGenerator64_context(num_classes=num_classes, output_dim=3).to(device)
     netD = CombineDiscriminator128_app(num_classes=num_classes).to(device)
 
     if (args.checkpoint_epoch is not None) and (args.checkpoint_epoch != 0):
@@ -233,5 +236,7 @@ if __name__ == "__main__":
                         help='path to output files')
     parser.add_argument('--checkpoint_epoch', type=int, default=55,
                         help='checkpoint epoch')
+    parser.add_argument('--image-size', type=int, default=128,
+                        help='size of the input & output image')
     args = parser.parse_args()
     main(args)

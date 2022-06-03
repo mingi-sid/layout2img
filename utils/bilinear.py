@@ -9,8 +9,8 @@ Modified from https://github.com/google/sg2im/blob/master/sg2im/bilinear.py
 
 
 def stn(image, transformation_matrix, size):
-    grid = torch.nn.functional.affine_grid(transformation_matrix, torch.Size(size))
-    out_image = torch.nn.functional.grid_sample(image, grid)
+    grid = torch.nn.functional.affine_grid(transformation_matrix, torch.Size(size), align_corners=True)
+    out_image = torch.nn.functional.grid_sample(image, grid, align_corners=True)
 
     return out_image
 
@@ -44,7 +44,7 @@ def crop_bbox(feats, bbox, HH, WW=None, backend='cudnn'):
         return bilinear_sample(feats, X, Y)
     elif backend == 'cudnn':
         grid = torch.stack([X, Y], dim=3)
-        return F.grid_sample(feats, grid)
+        return F.grid_sample(feats, grid, align_corners=True)
 
 
 def tensor_linspace(start, end, steps=10):
@@ -153,7 +153,7 @@ def masks_to_layout(boxes, masks, H, W=None):
     grid = _boxes_to_grid(boxes.view(b*num_o, -1), H, W).float().cuda(device=masks.device)
 
     img_in = masks.float().view(b*num_o, 1, M, M)
-    sampled = F.grid_sample(img_in, grid, mode='bilinear')
+    sampled = F.grid_sample(img_in, grid, mode='bilinear', align_corners=True)
 
     return sampled.view(b, num_o, H, W)
 

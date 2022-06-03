@@ -36,7 +36,7 @@ def get_dataset(dataset, img_size):
 
 def main(args):
     # parameters
-    img_size = 128
+    img_size = args.image_size
     z_dim = 128
     lamb_obj = 1.0
     lamb_app = 1.0
@@ -50,7 +50,7 @@ def main(args):
     train_data = get_dataset(args.dataset, img_size)
 
     num_gpus = torch.cuda.device_count()
-    num_workers = 2
+    num_workers = 4 * num_gpus
     if num_gpus > 1:
         parallel = True
         args.batch_size = args.batch_size * num_gpus
@@ -61,11 +61,14 @@ def main(args):
     print("{} GPUs, {} workers are used".format(num_gpus, num_workers))
     dataloader = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
-        drop_last=True, shuffle=True, num_workers=4)
+        drop_last=True, shuffle=True, num_workers=num_workers)
 
     # Load model
     device = torch.device('cuda')
-    netG = context_aware_generator(num_classes=num_classes, output_dim=3).to(device)
+    if img_size == 128:
+        netG = context_aware_generator(num_classes=num_classes, output_dim=3).to(device)
+    else:
+        netG = context_aware_generator64(num_classes=num_classes, output_dim=3).to(device)
     netD = CombineDiscriminator128_app(num_classes=num_classes).to(device)
 
     # if os.path.isfile(args.checkpoint):
@@ -207,8 +210,10 @@ if __name__ == "__main__":
                         help='learning rate for discriminator')
     parser.add_argument('--g_lr', type=float, default=0.0001,
                         help='learning rate for generator')
-    parser.add_argument('--out_path', type=str, default='./outputs/tmp/app',
+    parser.add_argument('--out_path', type=str, default='./outputs/tmp/context_app',
                         help='path to output files')
+    parser.add_argument('--image_size', type=int, default=128,
+                        help='size of the input&output image')
     # parser.add_argument('--checkpoint', type=str, default='./outputs/tmp/app/model/G_10.pth',
     #                     help='path of checkpoint')
     args = parser.parse_args()

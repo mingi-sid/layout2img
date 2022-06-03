@@ -13,14 +13,16 @@ import tarfile
 
 import numpy as np
 from six.moves import urllib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import glob
-from scipy.misc import imread, imresize
-# from skimage.transform import resize as imresize
-# from skimage.io import imread
+
+from skimage.transform import resize as imresize
+from skimage.io import imread
 import math
 import sys
 from tqdm import tqdm, trange
+
+tf.disable_v2_behavior()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--input_npy_file', default=None)
@@ -95,7 +97,7 @@ def load_images(args, image_dir):
             print('skip one channel image')
             continue
         if args.image_size is not None:
-            img = imresize(img, (args.image_size, args.image_size))
+            img = imresize(img, (args.image_size, args.image_size), preserve_range=True)
         images.append(img)
     print('Found %d images' % len(images))
     return images

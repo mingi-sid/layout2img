@@ -10,3 +10,4 @@ torch
 torchvision
 h5py
 tqdm
+tensorflow

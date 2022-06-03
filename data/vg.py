@@ -56,7 +56,7 @@ class VgSceneGraphDataset(Dataset):
         with h5py.File(h5_path, 'r') as f:
             for k, v in f.items():
                 if k == 'image_paths':
-                    self.image_paths = list(v)
+                    self.image_paths = [x.decode('utf-8') for x in list(v)]
                 else:
                     self.data[k] = torch.IntTensor(np.asarray(v))
 

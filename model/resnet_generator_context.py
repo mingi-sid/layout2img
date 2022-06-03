@@ -679,3 +679,86 @@ class context_aware_generator(nn.Module):
                 torch.nn.init.orthogonal_(k[1])
             if k[0][-4:] == 'bias':
                 torch.nn.init.constant_(k[1], 0)
+
+class context_aware_generator64(nn.Module):
+    def __init__(self, ch=64, z_dim=128, num_classes=10, output_dim=3):
+        super(context_aware_generator64, self).__init__()
+
+        self.num_classes = num_classes
+
+        self.label_embedding = nn.Embedding(num_classes, 128)
+
+        num_w = 128 + 128
+        self.context = BoxMultiHeadedAttention(1, num_w, dropout=0.0)
+        self.fc = nn.utils.spectral_norm(nn.Linear(z_dim, 4 * 4 * 16 * ch))
+
+        self.res2 = ResBlock(ch * 16, ch * 8, upsample=True, num_w=num_w)
+        self.res3 = ResBlock(ch * 8, ch * 4, upsample=True, num_w=num_w)
+        self.res4 = ResBlock(ch * 4, ch * 2, upsample=True, num_w=num_w)
+        self.res5 = ResBlock(ch * 2, ch * 1, upsample=True, num_w=num_w)
+        self.final = nn.Sequential(SynchronizedBatchNorm2d(ch),
+                                   nn.ReLU(),
+                                   conv2d(ch, output_dim, 3, 1, 1),
+                                   nn.Tanh())
+
+        # mapping function
+        mapping = list()
+        self.mapping = nn.Sequential(*mapping)
+
+        self.mask_regress = MaskRegressNet(num_w)
+        self.init_parameter()
+
+    def forward(self, z, bbox, z_im=None, y=None):
+        # print(z.shape)
+        # print(bbox.shape)
+        # print(y.shape)
+        b, o = z.size(0), z.size(1)
+        # print(y.shape)
+        if y.dim() == 3:
+            _, _, num_label = y.size()
+            label_embedding = []
+            for idx in range(num_label):
+                label_embedding.append(self.label_embedding[idx](y[:, :, idx]))
+            label_embedding = torch.cat(label_embedding, dim=-1)
+        else:
+            label_embedding = self.label_embedding(y)
+
+        z = z.view(b * o, -1)
+        label_embedding = label_embedding.view(b * o, -1)
+
+        latent_vector = torch.cat((z, label_embedding), dim=1).view(b, o, -1)
+
+        w = self.mapping(latent_vector.view(b * o, -1)).view(b, o, -1)
+        # context aware w
+        # print(w.shape)
+        w = self.context(w, w, w, bbox, y)
+        # print(w.shape)
+        w = w.view(b * o, -1)
+        # print(w.shape)
+        # preprocess bbox
+        bbox = self.mask_regress(w, bbox)
+        # print(bbox.shape)
+
+        if z_im is None:
+            z_im = torch.randn((b, 128), device=z.device)
+
+        # 4x4
+        x = self.fc(z_im).view(b, -1, 4, 4)
+        # 8x8
+        x = self.res2(x, w, bbox)
+        # 16x16
+        x = self.res3(x, w, bbox)
+        # 32x32
+        x = self.res4(x, w, bbox)
+        # 64x64
+        x = self.res5(x, w, bbox)
+        # to RGB
+        x = self.final(x)
+        return x
+
+    def init_parameter(self):
+        for k in self.named_parameters():
+            if k[1].dim() > 1:
+                torch.nn.init.orthogonal_(k[1])
+            if k[0][-4:] == 'bias':
+                torch.nn.init.constant_(k[1], 0)

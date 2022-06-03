@@ -70,12 +70,19 @@ def main(args):
         for idx, data in enumerate(dataloader):
             real_images, label, bbox = data
             real_images, label, bbox = real_images.cuda(), label.long().unsqueeze(-1).cuda(), bbox.float()
+            print('real_images', real_images, real_images.shape)
+            print('label', label, label.shape)
+            print('bbox', bbox, bbox.shape)
             for j in range(args.num_img):
 
                 z_obj = torch.from_numpy(truncted_random(num_o=num_o, thres=thres)).float().cuda()
+                print('z_obj', z_obj, z_obj.shape)
                 z_im = torch.from_numpy(truncted_random(num_o=1, thres=thres)).view(1, -1).float().cuda()
+                print('z_im', z_im, z_im.shape)
                 fake_images = netG.forward(z_obj, bbox, z_im, label.squeeze(dim=-1))
+                print('fake_images', fake_images, fake_images.shape)
                 fake_images_uint = img_as_ubyte(fake_images[0].cpu().detach().numpy().transpose(1, 2, 0) * 0.5 + 0.5)
+                print('fake_images_uint', fake_images_uint, fake_images_uint.shape)
                 # imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images[0].cpu().detach().numpy().transpose(1, 2, 0)* 0.5 + 0.5)
                 imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images_uint)
                 pbar.update(1)
