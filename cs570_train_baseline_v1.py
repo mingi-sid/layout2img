@@ -65,11 +65,8 @@ def main(args):
 
     # Load model
     device = torch.device('cuda')
-    if img_size == 128:
-        netG = ResnetGenerator128_context(num_classes=num_classes, output_dim=3).to(device)
-    elif img_size == 64:
-        netG = ResnetGenerator64_context(num_classes=num_classes, output_dim=3).to(device)
-    netD = CombineDiscriminator128_app(num_classes=num_classes).to(device)
+    netG = ResnetGenerator64_context(num_classes=num_classes, output_dim=3).to(device)
+    netD = CombineDiscriminator64_app(num_classes=num_classes).to(device)
 
     if (args.checkpoint_epoch is not None) and (args.checkpoint_epoch != 0):
         load_G = args.out_path + '/model/G_{}.pth'.format(args.checkpoint_epoch)
@@ -136,7 +133,7 @@ def main(args):
         os.makedirs(os.path.join(args.out_path, 'model/'))
     writer = SummaryWriter(os.path.join(args.out_path, 'log'))
 
-    logger = setup_logger("lostGAN", args.out_path, 0)
+    logger = setup_logger("CS570 GAN", args.out_path, 0)
     logger.info(netG)
     logger.info(netD)
 
@@ -154,9 +151,6 @@ def main(args):
             # print(label.shape)
             # print(bbox.shape)
             real_images, label, bbox = real_images.to(device), label.long().to(device).unsqueeze(-1), bbox.float()
-            print('bbox', bbox, bbox.shape)
-            print('label', label, label.shape)
-            print('real_images', real_images, real_images.shape)
 
             # update D network
             netD.zero_grad()
@@ -170,9 +164,6 @@ def main(args):
 
             z = torch.randn(real_images.size(0), num_obj, z_dim).to(device)
             fake_images = netG(z, bbox, y=label.squeeze(dim=-1))
-            print('z', z, z.shape)
-            print('fake_images', fake_images.shape)
-            print('fake_images.data', fake_images.cpu().data)
             d_out_fake, d_out_fobj, d_out_fobj_app = netD(fake_images.detach(), bbox, label)
             d_loss_fake = torch.nn.ReLU()(1.0 + d_out_fake).mean()
             d_loss_fobj = torch.nn.ReLU()(1.0 + d_out_fobj).mean()
@@ -240,7 +231,7 @@ if __name__ == "__main__":
                         help='learning rate for generator')
     parser.add_argument('--out_path', type=str, default='./outputs/tmp/app2',
                         help='path to output files')
-    parser.add_argument('--checkpoint_epoch', type=int, 
+    parser.add_argument('--checkpoint_epoch', type=int, default=55,
                         help='checkpoint epoch')
     parser.add_argument('--image-size', type=int, default=128,
                         help='size of the input & output image')

@@ -66,34 +66,35 @@ def main(args):
     netG.cuda()
     netG.eval()
 
-    if not os.path.exists(args.sample_path):
-        os.makedirs(args.sample_path)
-    thres = 2.0
-    with tqdm(total=dataloader.__len__() * args.num_img) as pbar:
-        for idx, data in enumerate(dataloader):
-            real_images, label, bbox = data
-            real_images, label, bbox = real_images.cuda(), label.long().unsqueeze(-1).cuda(), bbox.float()
-            print('bbox', bbox, bbox.shape)
-            print('label', label, label.shape)
-            print('real_images', real_images, real_images.shape)
+    with torch.no_grad():
+        if not os.path.exists(args.sample_path):
+            os.makedirs(args.sample_path)
+        thres = 2.0
+        with tqdm(total=dataloader.__len__() * args.num_img) as pbar:
+            for idx, data in enumerate(dataloader):
+                real_images, label, bbox = data
+                real_images, label, bbox = real_images.cuda(), label.long().unsqueeze(-1).cuda(), bbox.float()
+                print('bbox', bbox, bbox.shape)
+                print('label', label, label.shape)
+                print('real_images', real_images, real_images.shape)
 
-            for j in range(args.num_img):
+                for j in range(args.num_img):
 
-                z_obj = torch.from_numpy(truncted_random(num_o=num_o, thres=thres)).float().cuda()
-                # z_obj = torch.randn((1, num_o, 128)).float().cuda()
-                print('z_obj', z_obj, z_obj.shape)
-                z_im = torch.from_numpy(truncted_random(num_o=1, thres=thres)).view(1, -1).float().cuda()
-                # z_im = torch.randn((1, 1, 128)).float().cuda()
-                print('z_im', z_im, z_im.shape)
-                fake_images = netG(z=z_obj, bbox=bbox, z_im=z_im, y=label.squeeze(dim=-1))
-                print('fake_images', fake_images.shape)
-                print('fake_images.data', fake_images.cpu().data)
-                fake_images_uint = img_as_ubyte(fake_images[0].cpu().detach().numpy().transpose(1, 2, 0) * 0.5 + 0.5)
-                # imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images[0].cpu().detach().numpy().transpose(1, 2, 0) * 0.5 + 0.5)
-                imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images_uint)
-                pbar.update(1)
-            img_orig = imagenet_deprocess_orig(real_images)
-            imageio.imwrite("{save_path}/sample_{idx}.jpg".format(save_path=args.sample_path, idx=idx), img_orig[0].cpu().detach().numpy().transpose(1, 2, 0))
+                    z_obj = torch.from_numpy(truncted_random(num_o=num_o, thres=thres)).float().cuda()
+                    # z_obj = torch.randn((1, num_o, 128)).float().cuda()
+                    print('z_obj', z_obj, z_obj.shape)
+                    z_im = torch.from_numpy(truncted_random(num_o=1, thres=thres)).view(1, -1).float().cuda()
+                    # z_im = torch.randn((1, 1, 128)).float().cuda()
+                    print('z_im', z_im, z_im.shape)
+                    fake_images = netG(z=z_obj, bbox=bbox, z_im=z_im, y=label.squeeze(dim=-1))
+                    print('fake_images', fake_images.shape)
+                    print('fake_images.data', fake_images.cpu().data)
+                    fake_images_uint = img_as_ubyte(fake_images[0].cpu().detach().numpy().transpose(1, 2, 0) * 0.5 + 0.5)
+                    # imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images[0].cpu().detach().numpy().transpose(1, 2, 0) * 0.5 + 0.5)
+                    imageio.imwrite("{save_path}/sample_{idx}_numb_{numb}.jpg".format(save_path=args.sample_path, idx=idx, numb=j), fake_images_uint)
+                    pbar.update(1)
+                img_orig = imagenet_deprocess_orig(real_images)
+                imageio.imwrite("{save_path}/sample_{idx}.jpg".format(save_path=args.sample_path, idx=idx), img_orig[0].cpu().detach().numpy().transpose(1, 2, 0))
 
 
 if __name__ == "__main__":
